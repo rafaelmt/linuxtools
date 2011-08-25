@@ -11,6 +11,7 @@
 package org.eclipse.linuxtools.profiling.launch.remote;
 
 import java.io.File;
+import java.util.ArrayList;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
@@ -20,6 +21,7 @@ import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.linuxtools.internal.profiling.launch.remote.RemoteCommandShellOperation;
 import org.eclipse.linuxtools.internal.profiling.launch.remote.RemoteLaunchConstants;
 import org.eclipse.linuxtools.internal.profiling.launch.remote.RemoteMessages;
+import org.eclipse.rse.core.RSECorePlugin;
 import org.eclipse.rse.core.model.IHost;
 import org.eclipse.rse.core.model.ISystemRegistry;
 import org.eclipse.rse.core.model.SystemStartHere;
@@ -74,6 +76,11 @@ public class RemoteConnection {
 	}
 	
 	private void initialize() throws RemoteConnectionException {
+		try {
+			RSECorePlugin.waitForInitCompletion();
+		} catch (InterruptedException e2) {
+			throw new RemoteConnectionException(RemoteMessages.RemoteLaunchDelegate_error_interrupted, e2);
+		}
 		ISystemRegistry registry = SystemStartHere.getSystemRegistry();
 		String hostName = null;
 		try {
@@ -162,6 +169,7 @@ public class RemoteConnection {
 			throw new RemoteConnectionException(e1.getLocalizedMessage(), e1);
 		}
 	}
+	
 
 	/**
 	 * Create a folder on the remote system.  A RemoteConnectionException is thrown if any failure
@@ -189,8 +197,7 @@ public class RemoteConnection {
 	 * @return An array of String representing the command line output, if any.
 	 * @throws RemoteConnectionException
 	 */
-	public String[] runCommand(String command, IPath remoteWorkingDir, IProgressMonitor monitor) throws RemoteConnectionException {
-		String[] outputLines = null;
+	public int runCommand(String command, IPath remoteWorkingDir, ArrayList<String> output, IProgressMonitor monitor) throws RemoteConnectionException {
 		try {
 			IRemoteFile rf = fs.getRemoteFileObject(remoteWorkingDir.toString(), monitor);
 			RemoteCommand rc = new RemoteCommand(rcs, rf);
@@ -200,16 +207,15 @@ public class RemoteConnection {
 				// wait until complete before continuing
 				Thread.sleep(100);
 			}
-			rc.finish();
-			outputLines = new String[shell.getSize()]; 
+			rc.finish(); 
 			for (int i = 0; i < shell.getSize(); ++i) {
-				Object output = shell.getOutputAt(i);
-				outputLines[i] = output.toString();
+				Object outputLine = shell.getOutputAt(i);
+				output.add(outputLine.toString());
 			}
+			return rc.getReturnCode();
 		} catch (Exception e1) {
 			throw new RemoteConnectionException(e1.getLocalizedMessage(), e1);
 		}
-		return outputLines;
 	}
 	
 	/**

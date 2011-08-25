@@ -20,12 +20,12 @@
   <parent>
     <groupId>org.eclipse.linuxtools</groupId>
     <artifactId>linuxtools-parent</artifactId>
-    <version>0.8.0-SNAPSHOT</version>
+    <version>0.9.0-SNAPSHOT</version>
   </parent>
 
   <groupId>org.eclipse.linuxtools.valgrind</groupId>
   <artifactId>linuxtools-valgrind-parent</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.9.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Eclipse Linux Tools Valgrind Parent</name>
@@ -64,7 +64,7 @@
     <module>org.eclipse.linuxtools.valgrind.doc</module>
     <module>org.eclipse.linuxtools.valgrind-feature</module>
     <module>org.eclipse.linuxtools.valgrind.helgrind</module>
-    <!--<module>org.eclipse.linuxtools.valgrind.helgrind.tests</module>-->
+    <module>org.eclipse.linuxtools.valgrind.helgrind.tests</module>
     <module>org.eclipse.linuxtools.valgrind.launch</module>
     <!--<module>org.eclipse.linuxtools.valgrind.launch.remote</module>-->
     <module>org.eclipse.linuxtools.valgrind.massif</module>

@@ -19,10 +19,16 @@
   <prerequisites>
     <maven>3.0</maven>
   </prerequisites>
+  <parent>
+    <groupId>org.eclipse</groupId>
+    <artifactId>eclipse-parent</artifactId>
+    <version>2</version>
+  </parent>
+  
 
   <groupId>org.eclipse.linuxtools</groupId>
   <artifactId>linuxtools-parent</artifactId>
-  <version>0.8.0-SNAPSHOT</version>
+  <version>0.9.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Eclipse Linux Tools Parent</name>
@@ -54,23 +60,8 @@
       <id>maven.eclipse.org</id>
       <url>http://maven.eclipse.org/nexus/content/groups/public/</url>
     </pluginRepository>
-    <!--
-    TODO: need 1.0.1.2-SNAPSHOT of the signing plugin until bugfix for
-    https://bugs.eclipse.org/bugs/show_bug.cgi?id=347591
-    is available in maven.eclipse.org
-    -->
-    <pluginRepository>
-	  <id>intalio-dash-signing-plugin</id>
-	  <url>http://intalio.org/public/maven2</url>
-	  <snapshots>
-		  <enabled>true</enabled>
-	  </snapshots>
-	  <releases>
-	  <enabled>true</enabled>
-	  </releases>
-    </pluginRepository>
   </pluginRepositories>
-
+  
   <profiles>
     <profile>
       <id>platform-indigo</id>
@@ -127,6 +118,10 @@
       <layout>p2</layout>
       <url>${cdt-site}</url>
     </repository>
+    <repository>
+      <id>maven.eclipse.org</id>
+      <url>http://maven.eclipse.org/nexus/content/groups/public/</url>
+    </repository>
   </repositories>
   
   <build>
@@ -180,6 +175,11 @@
           <version>${tycho-version}</version>
         </plugin>
         <plugin>
+          <groupId>org.eclipse.tycho</groupId>
+          <artifactId>tycho-versions-plugin</artifactId>
+          <version>${tycho-version}</version>
+        </plugin>
+        <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-resources-plugin</artifactId>
           <version>2.5</version>
@@ -193,42 +193,6 @@
           <version>1.6</version>
         </plugin>
         <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>findbugs-maven-plugin</artifactId>
-          <version>2.3.2</version>
-          <configuration>
-            <findbugsXmlOutput>true</findbugsXmlOutput>
-            <failOnError>false</failOnError>
-          </configuration>
-          <executions>
-            <execution>
-              <goals>
-                <goal>check</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-pmd-plugin</artifactId>
-          <version>2.5</version>
-          <configuration>
-            <sourceEncoding>utf-8</sourceEncoding>
-            <minimumTokens>100</minimumTokens>
-            <targetJdk>1.5</targetJdk>
-            <format>xml</format>
-            <failOnViolation>false</failOnViolation>
-          </configuration>
-          <executions>
-            <execution>
-              <goals>
-                <goal>check</goal>
-                <goal>cpd-check</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-assembly-plugin</artifactId>
           <version>2.2.1</version>
@@ -239,7 +203,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.0-beta-3</version>
+          <version>3.0</version>
         </plugin>
       </plugins>
     </pluginManagement>

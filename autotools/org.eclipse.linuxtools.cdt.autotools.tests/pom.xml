@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.eclipse.linuxtools.cdt.autotools</groupId>
     <artifactId>linuxtools-cdt-autotools-parent</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>0.9.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>org.eclipse.linuxtools.cdt.autotools.tests</artifactId>
@@ -45,14 +45,6 @@
           <useUIThread>false</useUIThread>
           <product>org.eclipse.sdk.ide</product>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-pmd-plugin</artifactId>
       </plugin>
     </plugins>
   </build>

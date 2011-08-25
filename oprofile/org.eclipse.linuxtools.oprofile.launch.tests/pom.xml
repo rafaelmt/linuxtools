@@ -14,7 +14,7 @@
   <parent>
     <artifactId>linuxtools-oprofile-parent</artifactId>
     <groupId>org.eclipse.linuxtools.oprofile</groupId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.9.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>org.eclipse.linuxtools.oprofile.launch.tests</artifactId>
@@ -37,14 +37,6 @@
           <testSuite>org.eclipse.linuxtools.oprofile.launch.tests</testSuite>
           <testClass>org.eclipse.linuxtools.oprofile.launch.tests.AllLaunchTests</testClass>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-pmd-plugin</artifactId>
       </plugin>
     </plugins>
   </build>

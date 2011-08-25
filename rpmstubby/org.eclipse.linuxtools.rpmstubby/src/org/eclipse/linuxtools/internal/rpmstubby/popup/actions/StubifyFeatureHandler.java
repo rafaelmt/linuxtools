@@ -1,18 +1,26 @@
 /*******************************************************************************
- * Copyright (c) 2007 Alphonse Van Assche.
+ * Copyright (c) 2011 Red Hat, Inc.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  *
  * Contributors:
- *    Alphonse Van Assche - initial API and implementation
+ *     Alexander Kurtakov - initial API and implementation
  *******************************************************************************/
+package org.eclipse.linuxtools.internal.rpmstubby.popup.actions;
 
-package org.eclipse.linuxtools.rpmstubby.preferences;
+import org.eclipse.linuxtools.rpmstubby.InputType;
 
 /**
- * Constant definitions for stubby plug-in preferences.
+ * Handler for the feature.xml stubify command.
+ *
  */
-public class PreferenceConstants {
+public class StubifyFeatureHandler extends StubifyHandler {
+
+	@Override
+	protected InputType getInputType() {
+		return InputType.ECLIPSE_FEATURE;
+	}
+
 }
