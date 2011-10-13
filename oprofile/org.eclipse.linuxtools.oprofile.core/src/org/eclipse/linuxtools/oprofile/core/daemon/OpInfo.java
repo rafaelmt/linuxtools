@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 
+import org.eclipse.core.resources.IProject;
 import org.eclipse.linuxtools.oprofile.core.OprofileCorePlugin;
 import org.eclipse.linuxtools.oprofile.core.OpxmlException;
 import org.eclipse.linuxtools.oprofile.core.linux.LinuxOpxmlProvider.OpInfoRunner;
@@ -32,6 +33,9 @@ public class OpInfo {
 	public static final String DEFAULT_LOCK_FILE = DefaultsProcessor.LOCK_FILE;
 	public static final String DEFAULT_LOG_FILE = DefaultsProcessor.LOG_FILE;
 	public static final String DEFAULT_DUMP_STATUS = DefaultsProcessor.DUMP_STATUS;
+	
+	// Project that will be profiled. 
+	private IProject _currentProject;
 	
 	// A comparator class used when sorting events
 	// (sorting by event name)
@@ -211,4 +215,13 @@ public class OpInfo {
 		
 		return null;
 	}
+	
+	public void setCurrentProject(IProject project){
+		_currentProject = project;
+	}
+	
+	public IProject getCurrentProject(){
+		return _currentProject;
+	}
+	
 }

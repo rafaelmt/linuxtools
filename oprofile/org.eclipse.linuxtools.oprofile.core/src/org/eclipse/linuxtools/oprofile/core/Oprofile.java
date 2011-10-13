@@ -16,6 +16,7 @@ import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 
+import org.eclipse.core.resources.IProject;
 import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.linuxtools.oprofile.core.daemon.OpEvent;
 import org.eclipse.linuxtools.oprofile.core.daemon.OpInfo;
@@ -60,9 +61,7 @@ public class Oprofile
 		if (!isKernelModuleLoaded()) {
 			OprofileCorePlugin.showErrorDialog("oprofileInit", null); //$NON-NLS-1$
 //			throw new ExceptionInInitializerError(OprofileProperties.getString("fatal.kernelModuleNotLoaded")); //$NON-NLS-1$
-		} else {
-			_initializeOprofileCore();
-		}
+		} 
 	}
 	
 	// This requires more inside knowledge about Oprofile than one would like,
@@ -88,13 +87,16 @@ public class Oprofile
 		} 
 	}
 
-	
-	// Initializes static data for oprofile.	
-	private static void _initializeOprofileCore () {
-		_info = OpInfo.getInfo();
-		
-		if (_info == null) {
-			throw new ExceptionInInitializerError(OprofileProperties.getString("fatal.opinfoNotParsed")); //$NON-NLS-1$
+	/**
+	 * Initializes static data for oprofile.
+	 */
+	public static void initializeOprofileCore () {
+		if (isKernelModuleLoaded()){
+			_info = OpInfo.getInfo();
+			
+			if (_info == null) {
+				throw new ExceptionInInitializerError(OprofileProperties.getString("fatal.opinfoNotParsed")); //$NON-NLS-1$
+			}
 		}
 	}
 	
@@ -227,5 +229,17 @@ public class Oprofile
 		}
 
 		return image;
+	}
+	
+	public static void setCurrentProject(IProject project){
+		_info.setCurrentProject(project);
+	}
+	
+	public static IProject getCurrentProject(){
+		if (_info != null){
+			return _info.getCurrentProject();
+		} else {
+			return null;
+		}
 	}
 }
