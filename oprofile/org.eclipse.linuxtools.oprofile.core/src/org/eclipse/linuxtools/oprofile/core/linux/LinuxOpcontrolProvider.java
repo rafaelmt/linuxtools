@@ -15,8 +15,13 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
 
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.FileLocator;
+import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.linuxtools.oprofile.core.IOpcontrolProvider;
 import org.eclipse.linuxtools.oprofile.core.OpcontrolException;
 import org.eclipse.linuxtools.oprofile.core.Oprofile;
@@ -25,14 +30,18 @@ import org.eclipse.linuxtools.oprofile.core.daemon.OprofileDaemonEvent;
 import org.eclipse.linuxtools.oprofile.core.daemon.OprofileDaemonOptions;
 import org.eclipse.linuxtools.oprofile.core.opxml.sessions.SessionManager;
 import org.eclipse.linuxtools.tools.launch.core.factory.RuntimeProcessFactory;
+import org.eclipse.linuxtools.tools.launch.core.properties.LinuxtoolsPathProperty;
 
 /**
  * A class which encapsulates running opcontrol.
  */
 public class LinuxOpcontrolProvider implements IOpcontrolProvider {
+	private static final String _OPCONTROL_EXECUTABLE = "opcontrol";
+	
 	// Location of opcontrol security wrapper
-//	private static final String _OPCONTROL_REL_PATH = "natives/linux/scripts/opcontrol"; //$NON-NLS-1$
-	private final String OPCONTROL_PROGRAM =  "opcontrol";
+	private static final String _OPCONTROL_REL_PATH = "natives/linux/scripts/" + _OPCONTROL_EXECUTABLE; //$NON-NLS-1$
+	
+	private final String _OPCONTROL_PROGRAM;
 
 	// Initialize the Oprofile kernel module and oprofilefs
 	private static final String _OPD_INIT_MODULE = "--init"; //$NON-NLS-1$
@@ -100,6 +109,10 @@ public class LinuxOpcontrolProvider implements IOpcontrolProvider {
 	private String _verbosity = ""; //$NON-NLS-1$
 	
 	
+	public LinuxOpcontrolProvider() throws OpcontrolException {
+		_OPCONTROL_PROGRAM = _findOpcontrol();
+	}
+
 	/**
 	 * Unload the kernel module and oprofilefs
 	 * @throws OpcontrolException
@@ -236,7 +249,14 @@ public class LinuxOpcontrolProvider implements IOpcontrolProvider {
 	 * entered the password
 	 */
 	private boolean _runOpcontrol(ArrayList<String> args) throws OpcontrolException {
-		args.add(0, OPCONTROL_PROGRAM);
+		// If no linuxtools' toolchain is defined for this project, use the path for the
+		// link created by the installation script
+		if(LinuxtoolsPathProperty.getLinuxtoolsPath(Oprofile.getCurrentProject()).equals("")){
+			args.add(0, _OPCONTROL_PROGRAM);
+		} else{
+			args.add(0, _OPCONTROL_EXECUTABLE);
+		}
+
 		// Verbosity hack. If --start or --start-daemon, add verbosity, if set
 		String cmd = (String) args.get(1);
 		if (_verbosity.length() > 0 && (cmd.equals (_OPD_START_COLLECTION) || cmd.equals(_OPD_START_DAEMON))) {
@@ -253,7 +273,12 @@ public class LinuxOpcontrolProvider implements IOpcontrolProvider {
 		
 		Process p = null;
 		try {
-			p = RuntimeProcessFactory.getFactory().sudoExec(cmdArray, Oprofile.getCurrentProject());
+			IProject project = Oprofile.getCurrentProject();
+			if(LinuxtoolsPathProperty.getLinuxtoolsPath(project).equals("")){
+				p = Runtime.getRuntime().exec(cmdArray);
+			} else{
+				p = RuntimeProcessFactory.getFactory().sudoExec(cmdArray, project);
+			}
 		} catch (IOException ioe) {			
 			throw new OpcontrolException(OprofileCorePlugin.createErrorStatus("opcontrolRun", ioe)); //$NON-NLS-1$
 		}
@@ -310,6 +335,23 @@ public class LinuxOpcontrolProvider implements IOpcontrolProvider {
 		}
 		System.out.println(OprofileCorePlugin.DEBUG_PRINT_PREFIX + buf.toString());
 	}
+	
+	private static String _findOpcontrol() throws OpcontrolException {
+		URL url = FileLocator.find(Platform.getBundle(OprofileCorePlugin
+				.getId()), new Path(_OPCONTROL_REL_PATH), null);
+
+		if (url != null) {
+			try {
+				return FileLocator.toFileURL(url).getPath();
+			} catch (IOException ignore) {
+			}
+		} else {
+			throw new OpcontrolException(OprofileCorePlugin.createErrorStatus(
+					"opcontrolProvider", null)); //$NON-NLS-1$
+		}
+
+		return null;
+	}      
 
 	// Convert the event into arguments for opcontrol
 	private void _eventToArguments(ArrayList<String> args, OprofileDaemonEvent event) {
