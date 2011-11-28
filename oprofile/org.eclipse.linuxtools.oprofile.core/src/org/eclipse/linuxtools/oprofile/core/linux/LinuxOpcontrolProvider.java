@@ -248,10 +248,13 @@ public class LinuxOpcontrolProvider implements IOpcontrolProvider {
 	 * this appears to currently be the only way we can tell if user correctly
 	 * entered the password
 	 */
-	private boolean _runOpcontrol(ArrayList<String> args) throws OpcontrolException {
+	private boolean _runOpcontrol(ArrayList<String> args) throws OpcontrolException {	
+		IProject project = Oprofile.getCurrentProject();
+		
+		
 		// If no linuxtools' toolchain is defined for this project, use the path for the
 		// link created by the installation script
-		if(LinuxtoolsPathProperty.getLinuxtoolsPath(Oprofile.getCurrentProject()).equals("")){
+		if(project == null || LinuxtoolsPathProperty.getLinuxtoolsPath(project).equals("")){
 			args.add(0, _OPCONTROL_PROGRAM);
 		} else{
 			args.add(0, _OPCONTROL_EXECUTABLE);
@@ -273,8 +276,7 @@ public class LinuxOpcontrolProvider implements IOpcontrolProvider {
 		
 		Process p = null;
 		try {
-			IProject project = Oprofile.getCurrentProject();
-			if(LinuxtoolsPathProperty.getLinuxtoolsPath(project).equals("")){
+			if(project == null || LinuxtoolsPathProperty.getLinuxtoolsPath(project).equals("")){
 				p = Runtime.getRuntime().exec(cmdArray);
 			} else{
 				p = RuntimeProcessFactory.getFactory().sudoExec(cmdArray, project);
@@ -337,6 +339,7 @@ public class LinuxOpcontrolProvider implements IOpcontrolProvider {
 	}
 	
 	private static String _findOpcontrol() throws OpcontrolException {
+		IProject project = Oprofile.getCurrentProject();		
 		URL url = FileLocator.find(Platform.getBundle(OprofileCorePlugin
 				.getId()), new Path(_OPCONTROL_REL_PATH), null);
 
@@ -345,7 +348,9 @@ public class LinuxOpcontrolProvider implements IOpcontrolProvider {
 				return FileLocator.toFileURL(url).getPath();
 			} catch (IOException ignore) {
 			}
-		} else {
+		// If no linuxtools' toolchain is defined for this project and oprofile is not
+		// installed, throw exception
+		} else if(project == null || LinuxtoolsPathProperty.getLinuxtoolsPath(project).equals("")){
 			throw new OpcontrolException(OprofileCorePlugin.createErrorStatus(
 					"opcontrolProvider", null)); //$NON-NLS-1$
 		}
