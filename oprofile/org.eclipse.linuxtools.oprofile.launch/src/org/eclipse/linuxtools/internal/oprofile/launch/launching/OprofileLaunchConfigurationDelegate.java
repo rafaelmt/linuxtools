@@ -28,9 +28,18 @@ public class OprofileLaunchConfigurationDelegate extends AbstractOprofileLaunchC
 	protected boolean preExec(LaunchOptions options, OprofileDaemonEvent[] daemonEvents) {
 		//set up and launch the oprofile daemon
 		try {
+			IProject project = getProject();
+
+			//check if user has NOPASSWD sudo permission for opcontrol 
+			//if the Linux Tools Path property was changed
+			if(project != null && !LinuxtoolsPathProperty.getInstance().getLinuxtoolsPath(project).equals("")){
+				if(!hasPermissions(project)){
+					throw new OpcontrolException(OprofileCorePlugin.createErrorStatus("opcontrolSudo", null));
+				}
+			}
 			// Set current project to allow using the oprofile path that
 			// was chosen for the project 
-			Oprofile.setCurrentProject(getProject());
+			Oprofile.OprofileProject.setProject(project);
 			
 			if (!oprofileStatus())
 				return false;
@@ -55,6 +64,58 @@ public class OprofileLaunchConfigurationDelegate extends AbstractOprofileLaunchC
 			return false;
 		}
 		return true;
+	}
+
+	
+	/**
+	 * Checks if the user has permissions to execute opcontrol as root without providing password
+	 * and if opcontrol exists in the indicated path  
+	 * @param project
+	 * @return
+	 */
+	public static boolean hasPermissions(IProject project) {
+		String linuxtoolsPath = LinuxtoolsPathProperty.getInstance().getLinuxtoolsPath(project);
+		
+		String opcontrolPath = null;
+		if(linuxtoolsPath.endsWith("/")){
+			opcontrolPath = linuxtoolsPath + "opcontrol";
+		} else{
+			opcontrolPath = linuxtoolsPath + "/opcontrol";
+		}
+		
+		try {
+			// Check if user has sudo permissions without password by running sudo -l.
+			final Process p = RuntimeProcessFactory.getFactory().exec("sudo -l", project);
+//		    Thread t = new Thread() {
+//		        public void run() {
+//	            	try {
+//	            		p.waitFor();
+//					} catch (InterruptedException e) {
+//						e.printStackTrace();
+//					}
+//		        }
+//		    };
+//		    
+//		    t.start();
+//	    	t.join(2000);
+//	    	// If thread is still alive, that means sudo -l asked for root password and
+//			// the user has no sudo privileges whatsoever 
+//	    	if(t.isAlive()){
+//	    		return false;
+//	    	}
+			BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			String s = null;
+			while ((s = input.readLine()) != null){
+				if(s.contains(opcontrolPath) && s.contains("NOPASSWD")){
+					return true;
+				}		
+			}
+		} catch (IOException e) {
+			return false;
+//		} catch (InterruptedException e){
+//			e.printStackTrace();
+		}
+		return false;
 	}
 
 	@Override
