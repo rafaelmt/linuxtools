@@ -14,13 +14,14 @@
  *******************************************************************************/ 
 package org.eclipse.linuxtools.internal.oprofile.launch.launching;
 
-import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.eclipse.cdt.debug.core.CDebugUtils;
 import org.eclipse.cdt.debug.core.ICDTLaunchConfigurationConstants;
+import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
@@ -29,6 +30,7 @@ import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.linuxtools.internal.oprofile.core.OpcontrolException;
+import org.eclipse.linuxtools.internal.oprofile.core.Oprofile;
 import org.eclipse.linuxtools.internal.oprofile.core.OprofileCorePlugin;
 import org.eclipse.linuxtools.internal.oprofile.core.daemon.OprofileDaemonEvent;
 import org.eclipse.linuxtools.internal.oprofile.core.daemon.OprofileDaemonOptions;
@@ -37,20 +39,24 @@ import org.eclipse.linuxtools.internal.oprofile.launch.configuration.LaunchOptio
 import org.eclipse.linuxtools.internal.oprofile.launch.configuration.OprofileCounter;
 import org.eclipse.linuxtools.internal.oprofile.ui.OprofileUiPlugin;
 import org.eclipse.linuxtools.internal.oprofile.ui.view.OprofileView;
+import org.eclipse.linuxtools.profiling.launch.IRemoteFileProxy;
 import org.eclipse.linuxtools.profiling.launch.ProfileLaunchConfigurationDelegate;
+import org.eclipse.linuxtools.profiling.launch.RemoteProxyManager;
+import org.eclipse.linuxtools.tools.launch.core.factory.RuntimeProcessFactory;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 
 public abstract class AbstractOprofileLaunchConfigurationDelegate extends ProfileLaunchConfigurationDelegate {
-	
 	protected ILaunchConfiguration config;
 	
 	@Override
 	public void launch(ILaunchConfiguration config, String mode, ILaunch launch, IProgressMonitor monitor) throws CoreException {
+		IRemoteFileProxy proxy = null;
 		this.config = config;
+		Oprofile.OprofileProject.setProject(getProject());
 		LaunchOptions options = new LaunchOptions();		//default options created in the constructor
 		options.loadConfiguration(config);
-		IPath exePath = CDebugUtils.verifyProgramPath( config );
+		IPath exePath = getExePath(config);
 		options.setBinaryImage(exePath.toOSString());
 
 		//if daemonEvents null or zero size, the default event will be used
@@ -76,11 +82,18 @@ public abstract class AbstractOprofileLaunchConfigurationDelegate extends Profil
 		 * originally in the CDT under LocalCDILaunchDelegate::RunLocalApplication
 		 */
 		//set up and launch the local c/c++ program
-		try {
-			File wd = getWorkingDirectory( config );
-			if ( wd == null ) {
-				wd = new File( System.getProperty( "user.home", "." ) ); //$NON-NLS-1$ //$NON-NLS-2$
+		try {			
+			proxy = RemoteProxyManager.getInstance().getFileProxy(Oprofile.OprofileProject.getProject());
+			
+			URI workingDirURI = Oprofile.OprofileProject.getProject().getLocationURI();
+
+			IFileStore workingDir = null;
+			if (workingDirURI == null){
+				workingDir = proxy.getResource(System.getProperty( "user.home", "." ));
+			} else {
+				workingDir = proxy.getResource(workingDirURI.getRawPath());
 			}
+			
 			String arguments[] = getProgramArgumentsArray( config );
 			ArrayList<String> command = new ArrayList<String>( 1 + arguments.length );
 			command.add( exePath.toOSString() );
@@ -88,7 +101,8 @@ public abstract class AbstractOprofileLaunchConfigurationDelegate extends Profil
 			String[] commandArray = command.toArray( new String[command.size()] );
 			boolean usePty = config.getAttribute(ICDTLaunchConfigurationConstants.ATTR_USE_TERMINAL, ICDTLaunchConfigurationConstants.USE_TERMINAL_DEFAULT);
 			Process process;
-			process = execute( commandArray, getEnvironment( config ), wd, usePty );
+			process = RuntimeProcessFactory.getFactory().exec(commandArray, getEnvironment(config), workingDir, Oprofile.OprofileProject.getProject());
+			
 			DebugPlugin.newProcess( launch, process, renderProcessLabel( commandArray[0] ) );
 
 			postExec(options, daemonEvents, launch, process);
@@ -163,5 +177,11 @@ public abstract class AbstractOprofileLaunchConfigurationDelegate extends Profil
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	protected IPath getExePath(ILaunchConfiguration config) throws CoreException{
+		IPath exePath = CDebugUtils.verifyProgramPath( config );
+		
+		return exePath;
 	}
 }

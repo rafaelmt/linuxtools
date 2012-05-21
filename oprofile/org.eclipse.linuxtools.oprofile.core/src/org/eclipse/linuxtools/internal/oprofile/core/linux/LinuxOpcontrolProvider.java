@@ -41,8 +41,10 @@ public class LinuxOpcontrolProvider implements IOpcontrolProvider {
 	
 	// Location of opcontrol security wrapper
 	private static final String OPCONTROL_REL_PATH = "natives/linux/scripts/" + OPCONTROL_EXECUTABLE; //$NON-NLS-1$
+
+	private static boolean isInstalled;
 	
-	private final String opcontrolProgram;
+//	private final String opcontrolProgram;
 
 	// Initialize the Oprofile kernel module and oprofilefs
 	private static final String OPD_INIT_MODULE = "--init"; //$NON-NLS-1$
@@ -99,7 +101,7 @@ public class LinuxOpcontrolProvider implements IOpcontrolProvider {
 	
 	
 	public LinuxOpcontrolProvider() throws OpcontrolException {
-		opcontrolProgram = findOpcontrol();
+//		opcontrolProgram = findOpcontrol();
 	}
 
 	/**
@@ -255,13 +257,7 @@ public class LinuxOpcontrolProvider implements IOpcontrolProvider {
 		IProject project = Oprofile.OprofileProject.getProject();
 		
 		
-		// If no linuxtools' toolchain is defined for this project, use the path for the
-		// link created by the installation script
-		if(project == null || LinuxtoolsPathProperty.getInstance().getLinuxtoolsPath(project).equals("")){
-			args.add(0, opcontrolProgram);
-		} else{
-			args.add(0, OPCONTROL_EXECUTABLE);
-		}
+		args.add(0, findOpcontrol());
 
 		// Verbosity hack. If --start or --start-daemon, add verbosity, if set
 		String cmd = args.get(1);
@@ -277,17 +273,39 @@ public class LinuxOpcontrolProvider implements IOpcontrolProvider {
 			printOpcontrolCmd(cmdArray);
 		}
 		
+		Process p = createOpcontrolProcess(cmdArray, project);
+		return checkOpcontrolProcess(p);
+		
+	}
+	
+	protected Process createOpcontrolProcess(String[] cmdArray, IProject project) throws OpcontrolException {
 		Process p = null;
 		try {
-			if(project == null || LinuxtoolsPathProperty.getInstance().getLinuxtoolsPath(project).equals("")){
-				p = Runtime.getRuntime().exec(cmdArray);
-			} else{
+			
+			if (!LinuxtoolsPathProperty.getInstance().getLinuxtoolsPath(project).equals("")){
 				p = RuntimeProcessFactory.getFactory().sudoExec(cmdArray, project);
+			} else if (isInstalled){
+				p = Runtime.getRuntime().exec(cmdArray);
+			} else {
+				throw new OpcontrolException(OprofileCorePlugin.createErrorStatus("opcontrolProvider", null)); //$NON-NLS-1$
 			}
+			
+//			if(isInstalled){
+//				p = Runtime.getRuntime().exec(cmdArray);
+//			} else if (!LinuxtoolsPathProperty.getInstance().getLinuxtoolsPath(project).equals("")){
+//				p = RuntimeProcessFactory.getFactory().sudoExec(cmdArray, project);
+//			} else {
+//				// If no Linux Tools path is configured and opcontrol is not installed, throw exception
+//				throw new OpcontrolException(OprofileCorePlugin.createErrorStatus("opcontrolProvider", null)); //$NON-NLS-1$
+//			}
 		} catch (IOException ioe) {			
 			throw new OpcontrolException(OprofileCorePlugin.createErrorStatus("opcontrolRun", ioe)); //$NON-NLS-1$
 		}
 		
+		return p;
+	}
+	
+	protected boolean checkOpcontrolProcess(Process p) throws OpcontrolException {
 		if (p != null) {
 			BufferedReader errout = new BufferedReader(new InputStreamReader(p.getErrorStream()));
 			BufferedReader stdout = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -341,21 +359,26 @@ public class LinuxOpcontrolProvider implements IOpcontrolProvider {
 		System.out.println(OprofileCorePlugin.DEBUG_PRINT_PREFIX + buf.toString());
 	}
 	
-	private static String findOpcontrol() throws OpcontrolException {
-		IProject project = Oprofile.OprofileProject.getProject();		
+	protected static String findOpcontrol() {
+		IProject project = Oprofile.OprofileProject.getProject();
+		if (!LinuxtoolsPathProperty.getInstance().getLinuxtoolsPath(project).equals("")){
+			return OPCONTROL_EXECUTABLE;
+		}
+		
 		URL url = FileLocator.find(Platform.getBundle(OprofileCorePlugin
 				.getId()), new Path(OPCONTROL_REL_PATH), null);
 
 		if (url != null) {
 			try {
+				isInstalled = true;
 				return FileLocator.toFileURL(url).getPath();
 			} catch (IOException ignore) {
 			}
 		// If no linuxtools' toolchain is defined for this project and oprofile is not
 		// installed, throw exception
-		} else if(project == null || LinuxtoolsPathProperty.getInstance().getLinuxtoolsPath(project).equals("")){
-			throw new OpcontrolException(OprofileCorePlugin.createErrorStatus(
-					"opcontrolProvider", null)); //$NON-NLS-1$
+		} else {
+			isInstalled = false;
+			return OPCONTROL_EXECUTABLE;
 		}
 
 		return null;

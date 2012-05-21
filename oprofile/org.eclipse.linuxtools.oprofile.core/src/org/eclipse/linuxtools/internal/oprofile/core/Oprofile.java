@@ -12,17 +12,21 @@
 
 package org.eclipse.linuxtools.internal.oprofile.core;
 
-import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 
+import org.eclipse.core.filesystem.IFileStore;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.linuxtools.internal.oprofile.core.daemon.OpEvent;
 import org.eclipse.linuxtools.internal.oprofile.core.daemon.OpInfo;
 import org.eclipse.linuxtools.internal.oprofile.core.model.OpModelEvent;
 import org.eclipse.linuxtools.internal.oprofile.core.model.OpModelImage;
 import org.eclipse.linuxtools.internal.oprofile.core.opxml.checkevent.CheckEventsProcessor;
+import org.eclipse.linuxtools.profiling.launch.IRemoteFileProxy;
+import org.eclipse.linuxtools.profiling.launch.RemoteProxyManager;
 import org.eclipse.linuxtools.tools.launch.core.properties.LinuxtoolsPathProperty;
 
 
@@ -72,9 +76,16 @@ public class Oprofile
 	// succesfully call into the oprofile wrapper library without causing it to print out
 	// a lot of warnings).
 	private static boolean isKernelModuleLoaded() {
+		IRemoteFileProxy proxy = null;
+		try {
+			proxy = RemoteProxyManager.getInstance().getFileProxy(Oprofile.OprofileProject.getProject());
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+		
 		for (int i = 0; i < OPROFILE_CPU_TYPE_FILES.length; ++i) {
-			File f = new File(OPROFILE_CPU_TYPE_FILES[i]);
-			if (f.exists())
+			IFileStore f = proxy.getResource(OPROFILE_CPU_TYPE_FILES[i]);
+			if (f.fetchInfo().exists())
 				return true;
 		}
 		
@@ -226,16 +237,10 @@ public class Oprofile
 	}
 	
 	public static void updateInfo(){
-		try {
-			if (!OprofileCorePlugin.getDefault().getOpcontrolProvider().status()){
-				OprofileCorePlugin.getDefault().getOpcontrolProvider().initModule();
-			}
-			info = OpInfo.getInfo();
-		} catch (OpcontrolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if (!isKernelModuleLoaded()){
+			initializeOprofile();
 		}
-	
+		info = OpInfo.getInfo();
 	}
 	
 	// Oprofile class has a static initializer and the code inside it needs to know which project
@@ -244,8 +249,6 @@ public class Oprofile
 	public static class OprofileProject {
 		private static IProject project;
 
-		// Reloads oprofile modules by calling 'opcontrol --deinit' and
-		// 'opcontrol --init'
 		public static void setProject(IProject project) {
 			OprofileProject.project = project;
 			
